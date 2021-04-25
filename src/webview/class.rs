@@ -1,12 +1,12 @@
 //! Hoists a basic NSView. In our current particular use case,
 //! this is primarily used as the ContentView for a window. From there,
 //! we configure an NSToolbar and WKWebview on top of them.
-
+use std::ptr::null;
 use std::ffi::c_void;
 use std::sync::Once;
 
 use block::Block;
-
+use objc_id::Id;
 use objc::declare::ClassDecl;
 use objc::runtime::{Class, Object, Sel};
 use objc::{class, msg_send, sel, sel_impl};
@@ -16,6 +16,7 @@ use crate::webview::{WEBVIEW_DELEGATE_PTR, WebViewDelegate};
 use crate::webview::actions::{NavigationAction, NavigationResponse};//, OpenPanelParameters};
 //use crate::webview::enums::{NavigationPolicy, NavigationResponsePolicy};
 use crate::utils::load;
+use crate::webview::mimetype::MimeType;
 
 /// Called when an `alert()` from the underlying `WKWebView` is fired. Will call over to your
 /// `WebViewController`, where you should handle the event.
@@ -159,6 +160,10 @@ pub fn register_webview_delegate_class<T: WebViewDelegate>() -> *const Class {
         // WKScriptMessageHandler
         decl.add_method(sel!(userContentController:didReceiveScriptMessage:), on_message::<T> as extern fn(&Object, _, _, id));
  
+       // Custom scheme handler
+       decl.add_method(sel!(webView:startURLSchemeTask:), start_url_scheme_task::<T> as extern fn(&Object, Sel, id, id));
+       decl.add_method(sel!(webView:stopURLSchemeTask:), stop_url_scheme_task::<T> as extern fn(&Object, Sel, id, id));
+         
         // WKUIDelegate
         decl.add_method(sel!(webView:runJavaScriptAlertPanelWithMessage:initiatedByFrame:completionHandler:), alert::<T> as extern fn(&Object, _, _, id, _, _));
         decl.add_method(sel!(webView:runOpenPanelWithParameters:initiatedByFrame:completionHandler:), run_open_panel::<T> as extern fn(&Object, _, _, id, _, usize));
@@ -173,4 +178,43 @@ pub fn register_webview_delegate_class<T: WebViewDelegate>() -> *const Class {
     });
 
     unsafe { VIEW_CLASS }
+}
+
+extern fn stop_url_scheme_task<T: WebViewDelegate>(_: &Object, _: Sel, _webview: id, _task: id) {}
+
+extern fn start_url_scheme_task<T: WebViewDelegate>(this: &Object, _: Sel, _webview: id, task: id) {
+    let delegate = load::<T>(this, WEBVIEW_DELEGATE_PTR);
+
+    unsafe {
+        let request: id = msg_send![task, request];
+        let url: id = msg_send![request, URL];
+
+        let uri = NSString::from_retained(msg_send![url, absoluteString]);
+        let uri_str = uri.to_str();
+
+
+        if let Some(content) = delegate.on_custom_protocol_request(uri_str) {
+            let mime = MimeType::parse(&content, uri_str);
+            let nsurlresponse: id = msg_send![class!(NSURLResponse), alloc];
+            let response: id = msg_send![nsurlresponse, initWithURL:url MIMEType:NSString::new(&mime)
+                        expectedContentLength:content.len() textEncodingName:null::<c_void>()];
+            let () = msg_send![task, didReceiveResponse: response];
+
+            // Send data
+            let bytes = content.as_ptr() as *mut c_void;
+            let data: id = msg_send![class!(NSData), alloc];
+            let data: id = msg_send![data, initWithBytes:bytes length:content.len()];
+            let () = msg_send![task, didReceiveData: data];
+
+            // Finish
+            let () = msg_send![task, didFinish];
+        }
+
+
+        
+
+    }
+
+
+
 }

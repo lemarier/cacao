@@ -34,7 +34,7 @@ pub trait WebViewDelegate {
     fn on_message(&self, _name: &str, _body: &str) {}
 
     // if return None we should return 404
-    fn on_custom_protocol_request(&self, _name: &str, _path: &str) -> Option<Vec<u8>> {
+    fn on_custom_protocol_request(&self, _path: &str) -> Option<Vec<u8>> {
         None
     }
 

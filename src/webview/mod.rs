@@ -28,6 +28,8 @@ use crate::utils::properties::ObjcProperty;
 mod actions;
 pub use actions::*;
 
+mod mimetype;
+
 mod config;
 pub use config::WebViewConfig;
 
@@ -67,6 +69,7 @@ fn allocate_webview(
                 let name = NSString::new(&handler);
                 let _: () = msg_send![content_controller, addScriptMessageHandler:*delegate name:&*name];
             }
+
             for protocol in protocols {
                 let scheme_name = format!("{}URLSchemeHandler", protocol);
                 let name = NSString::new(&protocol);

@@ -38,7 +38,7 @@ impl WebViewConfig {
     /// Pushes the specified handler name onto the stack, queuing it for initialization with the
     /// `WKWebView`.
     pub fn add_handler(&mut self, name: &str) {
-        self.protocols.push(name.to_string());
+        self.handlers.push(name.to_string());
     }
 
     /// Adds the given user script to the underlying `WKWebView` user content controller.
@@ -59,7 +59,7 @@ impl WebViewConfig {
     }
     
     pub fn add_custom_protocol(&mut self, name: &str) {
-        self.handlers.push(name.to_string());
+        self.protocols.push(name.to_string());
     }
 
     /// Enables access to the underlying inspector view for `WKWebView`.
@@ -77,4 +77,6 @@ impl WebViewConfig {
     pub fn into_inner(mut self) -> id {
         &mut *self.objc
     }
+
+
 }
