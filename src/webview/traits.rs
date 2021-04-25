@@ -33,6 +33,11 @@ pub trait WebViewDelegate {
     /// Note that at the moment, you really should handle bridging JSON/stringification yourself.
     fn on_message(&self, _name: &str, _body: &str) {}
 
+    // if return None we should return 404
+    fn on_custom_protocol_request(&self, _name: &str, _path: &str) -> Option<Vec<u8>> {
+        None
+    }
+
     /// Given a callback handler, you can decide what policy should be taken for a given browser
     /// action. By default, this is `NavigationPolicy::Allow`.
     fn policy_for_navigation_action<F: Fn(NavigationPolicy)>(&self, _action: NavigationAction, handler: F) {

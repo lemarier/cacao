@@ -4,6 +4,7 @@
 use objc_id::Id;
 use objc::runtime::Object;
 use objc::{class, msg_send, sel, sel_impl};
+use objc::declare::ClassDecl;
 
 use crate::foundation::{id, YES, NO, NSString, NSInteger};
 use crate::webview::enums::InjectAt;
@@ -13,7 +14,8 @@ use crate::webview::enums::InjectAt;
 #[derive(Debug)]
 pub struct WebViewConfig {
     pub objc: Id<Object>,
-    pub handlers: Vec<String>
+    pub handlers: Vec<String>,
+    pub protocols: Vec<String>
 }
 
 impl Default for WebViewConfig {
@@ -26,7 +28,8 @@ impl Default for WebViewConfig {
 
         WebViewConfig {
             objc: config,
-            handlers: vec![]
+            handlers: vec![],
+            protocols: vec![]
         }
     }
 }
@@ -35,7 +38,7 @@ impl WebViewConfig {
     /// Pushes the specified handler name onto the stack, queuing it for initialization with the
     /// `WKWebView`.
     pub fn add_handler(&mut self, name: &str) {
-        self.handlers.push(name.to_string());
+        self.protocols.push(name.to_string());
     }
 
     /// Adds the given user script to the underlying `WKWebView` user content controller.
@@ -53,6 +56,10 @@ impl WebViewConfig {
             let content_controller: id = msg_send![&*self.objc, userContentController];
             let _: () = msg_send![content_controller, addUserScript:user_script];
         }
+    }
+    
+    pub fn add_custom_protocol(&mut self, name: &str) {
+        self.handlers.push(name.to_string());
     }
 
     /// Enables access to the underlying inspector view for `WKWebView`.

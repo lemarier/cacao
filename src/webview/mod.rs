@@ -50,6 +50,7 @@ fn allocate_webview(
     unsafe {
         // Not a fan of this, but we own it anyway, so... meh.
         let handlers = std::mem::take(&mut config.handlers);
+        let protocols = std::mem::take(&mut config.protocols);
         let configuration = config.into_inner();
         
         if let Some(delegate) = &objc_delegate {
@@ -65,6 +66,11 @@ fn allocate_webview(
             for handler in handlers {
                 let name = NSString::new(&handler);
                 let _: () = msg_send![content_controller, addScriptMessageHandler:*delegate name:&*name];
+            }
+            for protocol in protocols {
+                let scheme_name = format!("{}URLSchemeHandler", protocol);
+                let name = NSString::new(&protocol);
+                let _: () = msg_send![configuration, setURLSchemeHandler:*delegate forURLScheme:&*name];
             }
         }
 
